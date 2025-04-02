@@ -50,8 +50,8 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-async def listar_pa ccotes(update: Update,ontext: ContextTypes.DEFAULT_TYPE):
-    texto = "📦 *Pacotes disponíveis:*
+async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = "📦 *Pacotes disponíveis:*\n\n"
 
 "
     for nome, dados in PACOTES.items():
@@ -101,7 +101,8 @@ async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status – Ver seus últimos pedidos e o status de cada um\n"
         "/cancelar <id do pagamento> – Cancela um pedido que ainda não foi confirmado\n"
         "/cafe – Uma pausa emocional em formato de comando ☕\n"
-        "/ajuda – Você já está aqui, parabéns 👏\n\n"
+        "/ajuda – Você já está aqui, parabéns 👏\n"
+        "/contato – Falar com o suporte do bot\n\n"
         "⚠️ Clique nos botões e seja feliz."
     )
     await update.message.reply_text(texto, parse_mode="Markdown")
@@ -112,6 +113,13 @@ async def cafe(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Pronto! Agora você pode debugar bugs com mais moral e menos medo. 🤓"
     )
 
+async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📞 Para falar com o suporte, envie uma mensagem para [@Bielzeramartins](https://t.me/Bielzeramartins)",
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
+
 def register_user_handlers(app):
     app.add_handler(CommandHandler("comprar", comprar))
     app.add_handler(CallbackQueryHandler(clique_callback))
@@ -120,3 +128,4 @@ def register_user_handlers(app):
     app.add_handler(CommandHandler("ajuda", ajuda))
     app.add_handler(CommandHandler("cafe", cafe))
     app.add_handler(CommandHandler("cancelar", cancelar))
+    app.add_handler(CommandHandler("contato", contato))
