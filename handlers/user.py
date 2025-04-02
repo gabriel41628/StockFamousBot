@@ -57,10 +57,10 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         preco = pacote["preco"]
         await query.edit_message_text(
-            f"📅 Você escolheu o pacote *{nome_pacote}*\n"
-            f"
-💲 Valor: *R${preco:.2f}*\n"
-            "\nEnvie agora o link ou @usuario para continuar.",
+            f"📦 Você escolheu o pacote *{nome_pacote}*\n"
+            f"💲 Valor: *R${preco:.2f}*\n\n"
+            "Envie agora o link ou @usuario para continuar.\n"
+            "⚠️ Certifique-se de que o link está correto para evitar frustrações digitais.",
             parse_mode="Markdown"
         )
 
@@ -102,9 +102,67 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         f"✅ Pedido criado com sucesso!\n"
-        f"Produto: *{titulo}*\n"
-        f"Valor: R${preco:.2f}\n"
+        f"📦 Produto: *{titulo}*\n"
+        f"💰 Valor: R${preco:.2f}\n"
         f"🔗 Link enviado: {entrada}\n\n"
-        f"Clique aqui para pagar: {link_pagamento}",
+        f"👉 Clique aqui para pagar:\n{link_pagamento}",
         parse_mode="Markdown"
     )
+
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pedidos = listar_pedidos()
+    chat_id = update.message.chat_id
+
+    resposta = "📊 *Seus últimos pedidos:*\n\n"
+    encontrados = False
+
+    for p in pedidos:
+        if p[1] == chat_id:
+            encontrados = True
+            resposta += f"📦 *{p[2]}*\n💰 R${p[4]:.2f}\n🔗 [Link]({p[3]})\n📌 Status: `{p[5]}`\n\n"
+
+    if not encontrados:
+        resposta = "Você ainda não tem pedidos registrados."
+
+    await update.message.reply_text(resposta, parse_mode="Markdown")
+
+async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("❌ Use assim: /cancelar <ID do pagamento>")
+        return
+
+    mp_id = context.args[0]
+    chat_id = update.message.chat_id
+    cancelar_pedido(mp_id, chat_id)
+
+    await update.message.reply_text("❌ Pedido cancelado com sucesso (ou ele já estava cancelado mesmo).")
+
+async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = (
+        "📌 *Como usar o Stock Famous Bot:*\n\n"
+        "/start – Veja as opções iniciais\n"
+        "/comprar – Comece seu pedido com botões interativos\n"
+        "/status – Veja seus últimos pedidos e seus status\n"
+        "/cancelar <id do pagamento> – Cancela um pedido que ainda não foi confirmado\n"
+        "/ajuda – Você já está aqui, parabéns 👏\n"
+        "/contato – Falar com o suporte do bot\n\n"
+        "⚠️ Clique nos botões e siga as instruções. Evite usar a criatividade nos links."
+    )
+    await update.message.reply_text(texto, parse_mode="Markdown")
+
+async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📞 Para falar com o suporte, envie uma mensagem para [@Bielzeramartins](https://t.me/Bielzeramartins)",
+        parse_mode="Markdown",
+        disable_web_page_preview=True
+    )
+
+def register_user_handlers(app):
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("comprar", comprar))
+    app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("ajuda", ajuda))
+    app.add_handler(CommandHandler("contato", contato))
+    app.add_handler(CommandHandler("cancelar", cancelar))
+    app.add_handler(CallbackQueryHandler(clique_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_link))
