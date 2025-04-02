@@ -1,44 +1,59 @@
-from telegram import Update
-from telegram.ext import ContextTypes, CommandHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
 from services.pacotes import PACOTES
 from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
 
+# Mostra os botões com os pacotes
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ Use assim: /comprar <nome do pacote>")
+    keyboard = []
+    for nome in PACOTES:
+        keyboard.append([InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text("Escolha um pacote:", reply_markup=reply_markup)
+
+# Lida com o clique nos botões
+async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    if not data.startswith("comprar:"):
         return
 
-    nome_pacote = " ".join(context.args)
+    nome_pacote = data.split(":", 1)[1]
     pacote = PACOTES.get(nome_pacote)
 
     if not pacote:
-        await update.message.reply_text("🚫 Pacote não encontrado. Use /pacotes para ver a lista.")
+        await query.edit_message_text("🚫 Pacote não encontrado.")
         return
 
     preco = pacote["preco"]
     titulo = nome_pacote
-    chat_id = update.message.chat_id
+    chat_id = query.message.chat_id
     service_id = pacote.get("id_seguidores") or pacote.get("id")
     quantidade = pacote.get("quantidade", 100)
 
     link_pagamento, mp_id = criar_pagamento(titulo, preco)
 
     if not link_pagamento:
-        await update.message.reply_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
+        await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
         return
 
     salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando")
 
-    await update.message.reply_text(
+    await query.edit_message_text(
         f"💸 Pedido criado para *{titulo}*\n"
         f"Preço: R${preco:.2f}\n\n"
         f"Clique no link para pagar:\n{link_pagamento}",
         parse_mode="Markdown"
     )
 
-async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = "📦 *Pacotes disponíveis:*\n\n"
+async def listar_pa ccotes(update: Update,ontext: ContextTypes.DEFAULT_TYPE):
+    texto = "📦 *Pacotes disponíveis:*
+
+"
     for nome, dados in PACOTES.items():
         preco = dados["preco"]
         descricao = dados.get("descricao", "")
@@ -50,7 +65,9 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pedidos = listar_pedidos()
     chat_id = update.message.chat_id
 
-    resposta = "📊 *Seus últimos pedidos:*\n\n"
+    resposta = "📊 *Seus últimos pedidos:*
+
+"
     encontrados = False
 
     for p in pedidos:
@@ -76,16 +93,16 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = (
-        "📌 *Como usar o Stock Famous Bot:*\n\n"
+        "📌 *Como usar o Stock Famous Bot:*
+
+"
         "/pacotes – Lista todos os pacotes disponíveis com preços e descrições\n"
-        "/comprar <nome do pacote> – Inicia a compra de um pacote\n"
+        "/comprar – Mostra os pacotes disponíveis com botões interativos\n"
         "/status – Ver seus últimos pedidos e o status de cada um\n"
         "/cancelar <id do pagamento> – Cancela um pedido que ainda não foi confirmado\n"
         "/cafe – Uma pausa emocional em formato de comando ☕\n"
         "/ajuda – Você já está aqui, parabéns 👏\n\n"
-        "⚠️ Digite o nome do pacote exatamente como aparece na lista!\n"
-        "Dúvidas? Chama no suporte humano.\n\n"
-        "Feito com bytes e cafeína. ☕"
+        "⚠️ Clique nos botões e seja feliz."
     )
     await update.message.reply_text(texto, parse_mode="Markdown")
 
@@ -97,6 +114,7 @@ async def cafe(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def register_user_handlers(app):
     app.add_handler(CommandHandler("comprar", comprar))
+    app.add_handler(CallbackQueryHandler(clique_callback))
     app.add_handler(CommandHandler("pacotes", listar_pacotes))
     app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("ajuda", ajuda))
