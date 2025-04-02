@@ -1,19 +1,26 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
-from services.pacotes import PACOTES
 from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
+from services.pacotes import PACOTES
 
-# Mostra os botões com os pacotes
+# Mostra botões organizados por categoria
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
-    for nome in PACOTES:
-        keyboard.append([InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")])
+
+    for categoria, pacotes in PACOTES.items():
+        categoria_buttons = []
+        for nome in pacotes:
+            categoria_buttons.append(
+                [InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")]
+            )
+        keyboard.append([InlineKeyboardButton(f"📦 {categoria}", callback_data="ignore")])
+        keyboard.extend(categoria_buttons)
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text("Escolha um pacote:", reply_markup=reply_markup)
 
-# Lida com o clique nos botões
+# Lida com cliques nos botões
 async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -23,7 +30,11 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     nome_pacote = data.split(":", 1)[1]
-    pacote = PACOTES.get(nome_pacote)
+    pacote = None
+    for categoria in PACOTES.values():
+        if nome_pacote in categoria:
+            pacote = categoria[nome_pacote]
+            break
 
     if not pacote:
         await query.edit_message_text("🚫 Pacote não encontrado.")
@@ -52,10 +63,13 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = "📦 *Pacotes disponíveis:*\n\n"
-    for nome, dados in PACOTES.items():
-        preco = dados["preco"]
-        descricao = dados.get("descricao", "")
-        texto += f"*{nome}* — R${preco:.2f}\n_{descricao}_\n\n"
+    for categoria, pacotes in PACOTES.items():
+        texto += f"*{categoria}:*\n"
+        for nome, dados in pacotes.items():
+            preco = dados["preco"]
+            descricao = dados.get("descricao", "")
+            texto += f"• *{nome}* — R${preco:.2f}\n_{descricao}_\n"
+        texto += "\n"
 
     await update.message.reply_text(texto, parse_mode="Markdown")
 
