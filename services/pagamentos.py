@@ -14,7 +14,7 @@ def criar_pagamento(titulo, valor):
             "currency_id": "BRL",
             "unit_price": float(valor)
         }],
-        "notification_url": "https://SEU_NGROK/webhook",  # atualize isso depois
+        "notification_url": "fearless-rebirth-production.up.railway.app",  # atualize isso depois
         "auto_return": "approved"
     }
 
