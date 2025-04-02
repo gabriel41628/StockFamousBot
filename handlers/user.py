@@ -78,6 +78,7 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pacote_nome = dados["pacote"]
     pacote = dados["dados"]
 
+    # Validação básica
     if categoria.startswith("Seguidores"):
         if not (entrada.startswith("@") or "instagram.com" in entrada):
             await update.message.reply_text("⚠️ Isso não parece ser um @usuario ou um link válido do Instagram. Tenta de novo com carinho!")
@@ -87,25 +88,32 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⚠️ Opa! Isso não parece um link válido. Tenta de novo com um link começando com http.")
             return
 
-    preco = pacote["preco"]
+    preco = float(pacote["preco"])
     titulo = pacote_nome
     quantidade = pacote.get("quantidade", 100)
     service_id = pacote.get("id_seguidores") or pacote.get("id")
 
+    # 👇 DEBUG PRINTS
+    print(">> Criando pagamento para:", titulo, preco)
+
     link_pagamento, mp_id = criar_pagamento(titulo, preco)
 
     if not link_pagamento:
-        await update.message.reply_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
+        await update.message.reply_text(
+            "❌ Opa! Tivemos um problema ao gerar o link de pagamento.\n"
+            "Verifique se está tudo certinho com a conexão ou com o Mercado Pago.\n"
+            "Se continuar falhando, grita com o suporte!"
+        )
         return
 
     salvar_pedido(service_id, chat_id, entrada, mp_id, status="aguardando", quantidade=quantidade)
 
     await update.message.reply_text(
         f"✅ Pedido criado com sucesso!\n"
-        f"📦 Produto: *{titulo}*\n"
-        f"💰 Valor: R${preco:.2f}\n"
+        f"Produto: *{titulo}*\n"
+        f"Valor: R${preco:.2f}\n"
         f"🔗 Link enviado: {entrada}\n\n"
-        f"👉 Clique aqui para pagar:\n{link_pagamento}",
+        f"Clique aqui para pagar:\n{link_pagamento}",
         parse_mode="Markdown"
     )
 
