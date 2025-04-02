@@ -1,11 +1,14 @@
 from telegram.ext import ApplicationBuilder
 from config import BOT_TOKEN
-from handlers import setup_handlers
+from handlers.user import register_user_handlers
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-setup_handlers(app)
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    register_user_handlers(app)
+    app.run_polling()
 
-app.run_polling()
+if __name__ == "__main__":
+    main()
