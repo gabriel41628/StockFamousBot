@@ -2,7 +2,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
-from services.pacotes import PACOTES
+from services.pacotes_data import PACOTES
 
 # Envia mensagem de boas-vindas
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
