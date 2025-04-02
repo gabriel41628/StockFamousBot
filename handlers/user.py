@@ -35,7 +35,11 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("categoria:"):
         categoria = data.split(":", 1)[1]
-        pacotes = PACOTES.get(categoria, {})
+        pacotes = PACOTES.get(categoria)
+
+        if not pacotes:
+            await query.edit_message_text("🚫 Nenhum pacote encontrado para essa categoria.")
+            return
 
         keyboard = [
             [InlineKeyboardButton(f"{nome} - R${pacote['preco']:.2f}", callback_data=f"pacote:{categoria}:{nome}")]
@@ -57,10 +61,10 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         preco = pacote["preco"]
         await query.edit_message_text(
-            f"📦 Você escolheu o pacote *{nome_pacote}*\n"
-            f"💲 Valor: *R${preco:.2f}*\n\n"
-            "Envie agora o link ou @usuario para continuar.\n"
-            "⚠️ Certifique-se de que o link está correto para evitar frustrações digitais.",
+            f"🗓️ Você escolheu o pacote *{nome_pacote}*\n"
+            f"
+💲 Valor: *R${preco:.2f}*\n"
+            "\nEnvie agora o link ou @usuario para continuar.",
             parse_mode="Markdown"
         )
 
@@ -78,7 +82,6 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pacote_nome = dados["pacote"]
     pacote = dados["dados"]
 
-    # Validação básica
     if categoria.startswith("Seguidores"):
         if not (entrada.startswith("@") or "instagram.com" in entrada):
             await update.message.reply_text("⚠️ Isso não parece ser um @usuario ou um link válido do Instagram. Tenta de novo com carinho!")
@@ -88,32 +91,24 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("⚠️ Opa! Isso não parece um link válido. Tenta de novo com um link começando com http.")
             return
 
-    preco = float(pacote["preco"])
+    preco = pacote["preco"]
     titulo = pacote_nome
     quantidade = pacote.get("quantidade", 100)
     service_id = pacote.get("id_seguidores") or pacote.get("id")
 
-    # 👇 DEBUG PRINTS
-    print(">> Criando pagamento para:", titulo, preco)
-
     link_pagamento, mp_id = criar_pagamento(titulo, preco)
 
     if not link_pagamento:
-        await update.message.reply_text(
-            "❌ Opa! Tivemos um problema ao gerar o link de pagamento.\n"
-            "Verifique se está tudo certinho com a conexão ou com o Mercado Pago.\n"
-            "Se continuar falhando, grita com o suporte!"
-        )
+        await update.message.reply_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
         return
 
     salvar_pedido(service_id, chat_id, entrada, mp_id, status="aguardando", quantidade=quantidade)
 
     await update.message.reply_text(
-        f"✅ Pedido criado com sucesso!\n"
-        f"Produto: *{titulo}*\n"
-        f"Valor: R${preco:.2f}\n"
-        f"🔗 Link enviado: {entrada}\n\n"
-        f"Clique aqui para pagar:\n{link_pagamento}",
+        f"💸 Pedido criado para *{titulo}*\n"
+        f"Preço: R${preco:.2f}\n"
+        f"🔗 Link: {entrada}\n\n"
+        f"Clique abaixo para pagar:\n{link_pagamento}",
         parse_mode="Markdown"
     )
 
