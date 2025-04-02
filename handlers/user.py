@@ -1,8 +1,24 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler
+from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
 from services.pacotes import PACOTES
+
+# Armazena a etapa do fluxo do usuário
+user_flow = {}
+
+# Comando /start com explicação inicial
+def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    texto = (
+        "👋 Bem-vindo ao *Stock Famous Bot*!
+        
+"
+        "Aqui você pode comprar seguidores, curtidas, visualizações e muito mais.
+
+"
+        "Use os botões abaixo ou envie /comprar para começar."
+    )
+    return update.message.reply_text(texto, parse_mode="Markdown")
 
 # Primeiro nível: mostra categorias
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,8 +49,15 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         for nome in pacotes:
             keyboard.append([InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")])
 
+        keyboard.append([InlineKeyboardButton("⬅️ Voltar", callback_data="voltar")])
+
         reply_markup = InlineKeyboardMarkup(keyboard)
         await query.edit_message_text(f"📦 *{categoria}* — escolha o pacote:", parse_mode="Markdown", reply_markup=reply_markup)
+        return
+
+    # Botão de voltar
+    if data == "voltar":
+        await comprar(query, context)
         return
 
     # Clique em um pacote
@@ -50,26 +73,43 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.edit_message_text("🚫 Pacote não encontrado.")
             return
 
-        preco = pacote["preco"]
-        titulo = nome_pacote
         chat_id = query.message.chat_id
-        service_id = pacote.get("id_seguidores") or pacote.get("id")
-        quantidade = pacote.get("quantidade", 100)
+        context.user_data['pacote_selecionado'] = (nome_pacote, pacote)
+        user_flow[chat_id] = "esperando_link"
 
-        link_pagamento, mp_id = criar_pagamento(titulo, preco)
+        await query.edit_message_text("🔗 Envie o link do perfil ou postagem para aplicar o serviço:")
 
-        if not link_pagamento:
-            await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
-            return
+# Recebe o link e finaliza o pedido
+async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.message.chat_id
+    etapa = user_flow.get(chat_id)
 
-        salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando", quantidade=quantidade)
+    if etapa != "esperando_link":
+        return
 
-        await query.edit_message_text(
-            f"💸 Pedido criado para *{titulo}*\n"
-            f"Preço: R${preco:.2f}\n\n"
-            f"Clique no link para pagar:\n{link_pagamento}",
-            parse_mode="Markdown"
-        )
+    nome_pacote, pacote = context.user_data.get("pacote_selecionado", (None, None))
+    link = update.message.text
+    preco = pacote["preco"]
+    service_id = pacote.get("id_seguidores") or pacote.get("id")
+    quantidade = pacote.get("quantidade", 100)
+
+    link_pagamento, mp_id = criar_pagamento(nome_pacote, preco)
+    if not link_pagamento:
+        await update.message.reply_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
+        return
+
+    salvar_pedido(service_id, chat_id, link, mp_id, status="aguardando", quantidade=quantidade)
+
+    await update.message.reply_text(
+        f"💸 Pedido criado para *{nome_pacote}*\n"
+        f"Preço: R${preco:.2f}\n"
+        f"🔗 Link: {link}\n\n"
+        f"Clique abaixo para pagar:
+{link_pagamento}",
+        parse_mode="Markdown"
+    )
+
+    user_flow.pop(chat_id, None)
 
 async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = "📦 *Pacotes disponíveis:*\n\n"
@@ -136,6 +176,7 @@ async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def register_user_handlers(app):
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("comprar", comprar))
     app.add_handler(CallbackQueryHandler(clique_callback))
     app.add_handler(CommandHandler("pacotes", listar_pacotes))
@@ -144,3 +185,4 @@ def register_user_handlers(app):
     app.add_handler(CommandHandler("cafe", cafe))
     app.add_handler(CommandHandler("cancelar", cancelar))
     app.add_handler(CommandHandler("contato", contato))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_link))
