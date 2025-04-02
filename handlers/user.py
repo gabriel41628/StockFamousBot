@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes, CommandHandler
 from services.pacotes import PACOTES
-from pagamentos import criar_pagamento
+from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido
 
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
