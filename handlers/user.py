@@ -4,62 +4,72 @@ from services.pagamentos import criar_pagamento
 from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
 from services.pacotes import PACOTES
 
-# Mostra botões organizados por categoria
+# Primeiro nível: mostra categorias
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
-
-    for categoria, pacotes in PACOTES.items():
-        categoria_buttons = []
-        for nome in pacotes:
-            categoria_buttons.append(
-                [InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")]
-            )
-        keyboard.append([InlineKeyboardButton(f"📦 {categoria}", callback_data="ignore")])
-        keyboard.extend(categoria_buttons)
+    for categoria in PACOTES:
+        keyboard.append([InlineKeyboardButton(f"📦 {categoria}", callback_data=f"categoria:{categoria}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Escolha um pacote:", reply_markup=reply_markup)
+    await update.message.reply_text("Escolha uma categoria de serviço:", reply_markup=reply_markup)
 
-# Lida com cliques nos botões
+# Callback para categoria e pacotes
 async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
     data = query.data
-    if not data.startswith("comprar:"):
+
+    # Clique em uma categoria
+    if data.startswith("categoria:"):
+        categoria = data.split(":", 1)[1]
+        pacotes = PACOTES.get(categoria, {})
+
+        if not pacotes:
+            await query.edit_message_text("❌ Nenhum pacote disponível nesta categoria.")
+            return
+
+        keyboard = []
+        for nome in pacotes:
+            keyboard.append([InlineKeyboardButton(nome, callback_data=f"comprar:{nome}")])
+
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(f"📦 *{categoria}* — escolha o pacote:", parse_mode="Markdown", reply_markup=reply_markup)
         return
 
-    nome_pacote = data.split(":", 1)[1]
-    pacote = None
-    for categoria in PACOTES.values():
-        if nome_pacote in categoria:
-            pacote = categoria[nome_pacote]
-            break
+    # Clique em um pacote
+    if data.startswith("comprar:"):
+        nome_pacote = data.split(":", 1)[1]
+        pacote = None
+        for categoria in PACOTES.values():
+            if nome_pacote in categoria:
+                pacote = categoria[nome_pacote]
+                break
 
-    if not pacote:
-        await query.edit_message_text("🚫 Pacote não encontrado.")
-        return
+        if not pacote:
+            await query.edit_message_text("🚫 Pacote não encontrado.")
+            return
 
-    preco = pacote["preco"]
-    titulo = nome_pacote
-    chat_id = query.message.chat_id
-    service_id = pacote.get("id_seguidores") or pacote.get("id")
-    quantidade = pacote.get("quantidade", 100)
+        preco = pacote["preco"]
+        titulo = nome_pacote
+        chat_id = query.message.chat_id
+        service_id = pacote.get("id_seguidores") or pacote.get("id")
+        quantidade = pacote.get("quantidade", 100)
 
-    link_pagamento, mp_id = criar_pagamento(titulo, preco)
+        link_pagamento, mp_id = criar_pagamento(titulo, preco)
 
-    if not link_pagamento:
-        await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
-        return
+        if not link_pagamento:
+            await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
+            return
 
-    salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando", quantidade=quantidade)
+        salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando", quantidade=quantidade)
 
-    await query.edit_message_text(
-        f"💸 Pedido criado para *{titulo}*\n"
-        f"Preço: R${preco:.2f}\n\n"
-        f"Clique no link para pagar:\n{link_pagamento}",
-        parse_mode="Markdown"
-    )
+        await query.edit_message_text(
+            f"💸 Pedido criado para *{titulo}*\n"
+            f"Preço: R${preco:.2f}\n\n"
+            f"Clique no link para pagar:\n{link_pagamento}",
+            parse_mode="Markdown"
+        )
 
 async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = "📦 *Pacotes disponíveis:*\n\n"
@@ -104,22 +114,19 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = (
         "📌 *Como usar o Stock Famous Bot:*\n\n"
-        "/pacotes – Lista todos os pacotes disponíveis com preços e descrições\n"
-        "/comprar – Mostra os pacotes disponíveis com botões interativos\n"
-        "/status – Ver seus últimos pedidos e o status de cada um\n"
-        "/cancelar <id do pagamento> – Cancela um pedido que ainda não foi confirmado\n"
-        "/cafe – Uma pausa emocional em formato de comando ☕\n"
-        "/ajuda – Você já está aqui, parabéns 👏\n"
-        "/contato – Falar com o suporte do bot\n\n"
-        "⚠️ Clique nos botões e seja feliz."
+        "/comprar – Escolha uma categoria e selecione seu pacote\n"
+        "/status – Veja seus últimos pedidos\n"
+        "/cancelar <id do pagamento> – Cancele um pedido ainda não confirmado\n"
+        "/pacotes – Veja todos os pacotes em formato de lista\n"
+        "/ajuda – Você já está aqui, respira\n"
+        "/cafe – Um agrado emocional\n"
+        "/contato – Suporte diretamente comigo\n\n"
+        "⚠️ Use os botões abaixo das mensagens para navegar."
     )
     await update.message.reply_text(texto, parse_mode="Markdown")
 
 async def cafe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "☕ Café sendo preparado...\n"
-        "Pronto! Agora você pode debugar bugs com mais moral e menos medo. 🤓"
-    )
+    await update.message.reply_text("☕ Você recebeu um café virtual. Melhor que bugar no meio do pedido.")
 
 async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
