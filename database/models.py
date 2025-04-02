@@ -13,13 +13,24 @@ def criar_db():
             status TEXT,
             mp_id TEXT,
             fornecedor_id TEXT,
-            service_id INTEGER
+            service_id INTEGER,
+            chat_id INTEGER
         )
     ''')
     conn.commit()
     conn.close()
 
-def salvar_pedido(usuario, servico, link, preco, status, mp_id, service_id):
+def salvar_pedido(service_id, chat_id, link, mp_id, status="aguardando"):
+    conn = sqlite3.connect("dados.db")
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO pedidos (service_id, chat_id, link, mp_id, status)
+        VALUES (?, ?, ?, ?, ?)
+    ''', (service_id, chat_id, link, mp_id, status))
+    conn.commit()
+    conn.close()
+
+def salvar_pedido_completo(usuario, servico, link, preco, status, mp_id, service_id):
     conn = sqlite3.connect("dados.db")
     c = conn.cursor()
     c.execute('''
