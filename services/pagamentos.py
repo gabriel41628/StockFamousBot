@@ -14,14 +14,23 @@ def criar_pagamento(titulo, valor):
             "currency_id": "BRL",
             "unit_price": float(valor)
         }],
-        "notification_url": "fearless-rebirth-production.up.railway.app",  # atualize isso depois
-        "auto_return": "approved"
+        "notification_url": "https://fearless-rebirth-production.up.railway.app/webhook",
+        "auto_return": "approved",
+        "back_urls": {
+            "success": "https://t.me/StockFamous_Bot",
+            "failure": "https://t.me/StockFamous_Bot",
+            "pending": "https://t.me/StockFamous_Bot"
+        }
     }
 
-    resposta = requests.post(url, json=payload, headers=headers)
-
     try:
-        return resposta.json()["init_point"], resposta.json()["id"]
+        resposta = requests.post(url, json=payload, headers=headers)
+        if resposta.ok:
+            data = resposta.json()
+            return data["init_point"], data["id"]
+        else:
+            print("⚠️ Erro ao criar pagamento:", resposta.status_code, resposta.text)
+            return None, None
     except Exception as e:
-        print("Erro ao criar pagamento:", resposta.text)
+        print("❌ Erro inesperado ao criar pagamento:", str(e))
         return None, None
