@@ -1,15 +1,12 @@
-import logging
 from telegram.ext import ApplicationBuilder
 from config import BOT_TOKEN
 from handlers import setup_handlers
-import asyncio
+import logging
 
 logging.basicConfig(level=logging.INFO)
 
-async def main():
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    setup_handlers(app)
-    await app.run_polling()
+app = ApplicationBuilder().token(BOT_TOKEN).build()
+setup_handlers(app)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# Só isso. Nada de função main, nada de asyncio.run
+app.run_polling()
