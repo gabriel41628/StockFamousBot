@@ -20,7 +20,7 @@ def criar_db():
     conn.commit()
     conn.close()
 
-def salvar_pedido(service_id, chat_id, link, mp_id, status="aguardando"):
+def salvar_pedido(service_id, chat_id, link, mp_id, status="aguardando", quantidade=100):
     conn = sqlite3.connect("dados.db")
     c = conn.cursor()
     c.execute('''

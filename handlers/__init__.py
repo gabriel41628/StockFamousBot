@@ -1,6 +1,3 @@
-from .user import register_user_handlers
-from .admin import register_admin_handlers
-
 def setup_handlers(app):
+    from .user import register_user_handlers
     register_user_handlers(app)
-    register_admin_handlers(app)

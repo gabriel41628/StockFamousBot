@@ -4,7 +4,7 @@ from config import MERCADO_PAGO_TOKEN
 def criar_pagamento(titulo, valor):
     url = "https://api.mercadopago.com/checkout/preferences"
     headers = {
-        "Authorization": f"Bearer {MERCADO_PAGO_TOKEN}",
+        "Authorization": f"Bearer {APP_USR-8017733387483580-040117-b163d6c7fcdfb00930f24df53b8501ad-2040475905}",
         "Content-Type": "application/json"
     }
     payload = {

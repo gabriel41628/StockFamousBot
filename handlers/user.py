@@ -6,37 +6,41 @@ from services.pacotes_data import PACOTES
 
 pending_orders = {}
 
+def register_user_handlers(app):
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("comprar", comprar))
+    app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("ajuda", ajuda))
+    app.add_handler(CommandHandler("contato", contato))
+    app.add_handler(CommandHandler("cancelar", cancelar))
+    app.add_handler(CallbackQueryHandler(clique_callback))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_link))
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("🚀 Ver Pacotes", callback_data="menu")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
-        "👋 Bem-vindo ao *Stock Famous Bot*!\n\n"
-        "Aqui você pode comprar seguidores, curtidas, visualizações e muito mais.\n\n"
-        "Use o botão abaixo para começar sua jornada rumo à fama digital!",
+        "👋 Bem-vindo ao *Stock Famous Bot*!\n\nAqui você pode comprar seguidores, curtidas, visualizações e muito mais.\n\nUse o botão abaixo para começar sua jornada rumo à fama digital!",
         reply_markup=reply_markup,
         parse_mode="Markdown"
     )
 
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = []
-    for categoria in PACOTES:
-        keyboard.append([InlineKeyboardButton(f"📦 {categoria}", callback_data=f"categoria:{categoria}")])
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Escolha uma categoria de pacotes:", reply_markup=reply_markup)
+    await enviar_categorias(update.message.reply_text)
 
 async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-
     data = query.data
     chat_id = query.message.chat_id
+
+    if data == "menu":
+        await enviar_categorias(query.edit_message_text)
+        return
 
     if data.startswith("categoria:"):
         categoria = data.split(":", 1)[1]
         pacotes = PACOTES.get(categoria)
-
         if not pacotes:
             await query.edit_message_text("🚫 Nenhum pacote encontrado para essa categoria.")
             return
@@ -46,19 +50,20 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             for nome, pacote in pacotes.items()
         ]
         keyboard.append([InlineKeyboardButton("🔙 Voltar", callback_data="menu")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(f"Pacotes disponíveis para *{categoria}*:", reply_markup=reply_markup, parse_mode="Markdown")
+        await query.edit_message_text(
+            f"Pacotes disponíveis para *{categoria}*:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown"
+        )
 
     elif data.startswith("pacote:"):
         _, categoria, nome_pacote = data.split(":", 2)
         pacote = PACOTES.get(categoria, {}).get(nome_pacote)
-
         if not pacote:
             await query.edit_message_text("🚫 Pacote não encontrado.")
             return
 
         pending_orders[chat_id] = {"categoria": categoria, "pacote": nome_pacote, "dados": pacote}
-
         preco = pacote["preco"]
         await query.edit_message_text(
             f"🗓️ Você escolheu o pacote *{nome_pacote}*\n"
@@ -66,9 +71,6 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "\nEnvie agora o link ou @usuario para continuar.",
             parse_mode="Markdown"
         )
-
-    elif data == "menu":
-        await comprar(update, context)
 
 async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat_id
@@ -102,7 +104,6 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     salvar_pedido(service_id, chat_id, entrada, mp_id, status="aguardando", quantidade=quantidade)
-
     await update.message.reply_text(
         f"💸 Pedido criado para *{titulo}*\n"
         f"Preço: R${preco:.2f}\n"
@@ -111,60 +112,9 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown"
     )
 
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pedidos = listar_pedidos()
-    chat_id = update.message.chat_id
-
-    resposta = "📊 *Seus últimos pedidos:*\n\n"
-    encontrados = False
-
-    for p in pedidos:
-        if p[1] == chat_id:
-            encontrados = True
-            resposta += f"📦 *{p[2]}*\n💰 R${p[4]:.2f}\n🔗 [Link]({p[3]})\n📌 Status: `{p[5]}`\n\n"
-
-    if not encontrados:
-        resposta = "Você ainda não tem pedidos registrados."
-
-    await update.message.reply_text(resposta, parse_mode="Markdown")
-
-async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("❌ Use assim: /cancelar <ID do pagamento>")
-        return
-
-    mp_id = context.args[0]
-    chat_id = update.message.chat_id
-    cancelar_pedido(mp_id, chat_id)
-
-    await update.message.reply_text("❌ Pedido cancelado com sucesso (ou ele já estava cancelado mesmo).")
-
-async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = (
-        "📌 *Como usar o Stock Famous Bot:*\n\n"
-        "/start – Veja as opções iniciais\n"
-        "/comprar – Comece seu pedido com botões interativos\n"
-        "/status – Veja seus últimos pedidos e seus status\n"
-        "/cancelar <id do pagamento> – Cancela um pedido que ainda não foi confirmado\n"
-        "/ajuda – Você já está aqui, parabéns 👏\n"
-        "/contato – Falar com o suporte do bot\n\n"
-        "⚠️ Clique nos botões e siga as instruções. Evite usar a criatividade nos links."
-    )
-    await update.message.reply_text(texto, parse_mode="Markdown")
-
-async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📞 Para falar com o suporte, envie uma mensagem para [@Bielzeramartins](https://t.me/Bielzeramartins)",
-        parse_mode="Markdown",
-        disable_web_page_preview=True
-    )
-
-def register_user_handlers(app):
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("comprar", comprar))
-    app.add_handler(CommandHandler("status", status))
-    app.add_handler(CommandHandler("ajuda", ajuda))
-    app.add_handler(CommandHandler("contato", contato))
-    app.add_handler(CommandHandler("cancelar", cancelar))
-    app.add_handler(CallbackQueryHandler(clique_callback))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_link))
+async def enviar_categorias(send_function):
+    keyboard = [
+        [InlineKeyboardButton(f"📦 {categoria}", callback_data=f"categoria:{categoria}")]
+        for categoria in PACOTES
+    ]
+    await send_function("Escolha uma categoria de pacotes:", reply_markup=InlineKeyboardMarkup(keyboard))
