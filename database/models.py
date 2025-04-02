@@ -51,6 +51,17 @@ def atualizar_status(mp_id, status, fornecedor_id):
     conn.commit()
     conn.close()
 
+def cancelar_pedido(mp_id, chat_id):
+    conn = sqlite3.connect("dados.db")
+    c = conn.cursor()
+    c.execute('''
+        UPDATE pedidos
+        SET status = 'cancelado'
+        WHERE mp_id = ? AND chat_id = ? AND status = 'aguardando'
+    ''', (mp_id, chat_id))
+    conn.commit()
+    conn.close()
+
 def listar_pedidos():
     conn = sqlite3.connect("dados.db")
     c = conn.cursor()
