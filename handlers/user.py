@@ -106,7 +106,7 @@ async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Lista todos os pacotes (modo texto)
 async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = "📦 *Pacotes disponíveis:*
+    texto = "📦 *Pacotes disponíveis:*\n\n"
 \n"
     for categoria, pacotes in PACOTES.items():
         texto += f"*{categoria}:*\n"
