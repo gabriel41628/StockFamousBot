@@ -62,8 +62,7 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         preco = pacote["preco"]
         await query.edit_message_text(
             f"🗓️ Você escolheu o pacote *{nome_pacote}*\n"
-            f"
-💲 Valor: *R${preco:.2f}*\n"
+            f"💲 Valor: *R${preco:.2f}*\n"
             "\nEnvie agora o link ou @usuario para continuar.",
             parse_mode="Markdown"
         )
