@@ -6,7 +6,7 @@ def register_admin_handlers(app):
     app.add_handler(CommandHandler("pedidos", listar))
 
 async def listar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if str(update.message.chat_id) != "836934282:
+    if str(update.message.chat_id) != "836934282":
         await update.message.reply_text("🚫 Acesso negado.")
         return
 
