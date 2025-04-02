@@ -41,7 +41,7 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("❌ Erro ao gerar pagamento. Tente novamente mais tarde.")
         return
 
-    salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando")
+    salvar_pedido(service_id, chat_id, link_pagamento, mp_id, status="aguardando", quantidade=quantidade)
 
     await query.edit_message_text(
         f"💸 Pedido criado para *{titulo}*\n"
@@ -52,8 +52,6 @@ async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def listar_pacotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = "📦 *Pacotes disponíveis:*\n\n"
-
-"
     for nome, dados in PACOTES.items():
         preco = dados["preco"]
         descricao = dados.get("descricao", "")
@@ -65,9 +63,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pedidos = listar_pedidos()
     chat_id = update.message.chat_id
 
-    resposta = "📊 *Seus últimos pedidos:*
-
-"
+    resposta = "📊 *Seus últimos pedidos:*\n\n"
     encontrados = False
 
     for p in pedidos:
@@ -93,9 +89,7 @@ async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
     texto = (
-        "📌 *Como usar o Stock Famous Bot:*
-
-"
+        "📌 *Como usar o Stock Famous Bot:*\n\n"
         "/pacotes – Lista todos os pacotes disponíveis com preços e descrições\n"
         "/comprar – Mostra os pacotes disponíveis com botões interativos\n"
         "/status – Ver seus últimos pedidos e o status de cada um\n"
