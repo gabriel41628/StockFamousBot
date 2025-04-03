@@ -1,4 +1,7 @@
 import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "7957239746:AAGr78KIPdWBK1-QajD35NtjsHjk_P0UpD4")
-MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_TOKEN", "APP_USR-8017733387483580-040117-b163d6c7fcdfb00930f24df53b8501ad-2040475905")
+# Se você for usar variáveis de ambiente do Railway, set BOT_TOKEN e MERCADO_PAGO_TOKEN nelas.
+# Caso contrário, coloque aqui fixo (NÃO recomendado em produção).
+
+BOT_TOKEN = os.getenv("BOT_TOKEN", "SUA_TELEGRAM_BOT_TOKEN")
+MERCADO_PAGO_TOKEN = os.getenv("MERCADO_PAGO_TOKEN", "SUA_MERCADO_PAGO_ACCESS_TOKEN")

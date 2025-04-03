@@ -7,7 +7,6 @@ def criar_pagamento(titulo, valor):
         "Authorization": f"Bearer {MERCADO_PAGO_TOKEN}",
         "Content-Type": "application/json"
     }
-
     payload = {
         "items": [{
             "title": titulo,
@@ -15,13 +14,13 @@ def criar_pagamento(titulo, valor):
             "currency_id": "BRL",
             "unit_price": float(valor)
         }],
-        "notification_url": "https://fearless-rebirth-production.up.railway.app/webhook",  # Troque pelo seu real
-        "auto_return": "approved",
+        "notification_url": "https://SUASEGURL/webhook",  # coloque uma URL real se tiver
         "back_urls": {
             "success": "https://t.me/StockFamous_Bot",
             "failure": "https://t.me/StockFamous_Bot",
             "pending": "https://t.me/StockFamous_Bot"
-        }
+        },
+        "auto_return": "approved"
     }
 
     try:
@@ -30,8 +29,8 @@ def criar_pagamento(titulo, valor):
             data = resposta.json()
             return data["init_point"], data["id"]
         else:
-            print("⚠️ Erro ao criar pagamento:", resposta.status_code, resposta.text)
+            print("Erro Mercado Pago:", resposta.text)
             return None, None
     except Exception as e:
-        print("❌ Erro inesperado ao criar pagamento:", str(e))
+        print("Erro inesperado:", e)
         return None, None

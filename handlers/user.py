@@ -1,195 +1,179 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+
 from services.pagamentos import criar_pagamento
-from database.models import (
-    salvar_pedido_completo,
-    listar_pedidos,
-    cancelar_pedido
-)
+from database.models import salvar_pedido, listar_pedidos, cancelar_pedido
 from services.pacotes_data import PACOTES
 
-pending_orders = {}
+pending_orders = {}  # dicionário para armazenar pacote temporariamente
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("🚀 Ver Pacotes", callback_data="menu")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
-        "👋 Bem-vindo ao *Stock Famous Bot*!\n\n"
-        "Aqui você pode comprar seguidores, curtidas, visualizações e muito mais.\n\n"
-        "Use o botão abaixo para começar sua jornada rumo à fama digital!",
+        "👋 Bem-vindo ao *Stock Famous Bot*!\nClique abaixo para ver os pacotes!",
         reply_markup=reply_markup,
         parse_mode="Markdown"
     )
 
 async def comprar(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [
-        [InlineKeyboardButton(f"📦 {categoria}", callback_data=f"categoria:{categoria}")]
-        for categoria in PACOTES
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Escolha uma categoria de pacotes:", reply_markup=reply_markup)
+    # Lista as categorias do dicionário PACOTES:
+    keyboard = [[InlineKeyboardButton(f"📦 {categoria}", callback_data=f"categoria:{categoria}")] 
+                for categoria in PACOTES]
+    await update.message.reply_text("Escolha uma categoria:", 
+                                    reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def clique_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     data = query.data
-    chat_id = query.message.chat_id
-
-    if data == "menu":
-        await comprar(update, context)
-        return
+    chat_id = query.message.chat.id
 
     if data.startswith("categoria:"):
         categoria = data.split(":", 1)[1]
-        pacotes = PACOTES.get(categoria)
-
-        if not pacotes:
-            await query.edit_message_text("🚫 Nenhum pacote encontrado para essa categoria.")
-            return
-
-        keyboard = [
-            [InlineKeyboardButton(f"{nome} - R${dados['preco']:.2f}", callback_data=f"pacote:{categoria}:{nome}")]
-            for nome, dados in pacotes.items()
-        ]
-        keyboard.append([InlineKeyboardButton("🔙 Voltar", callback_data="menu")])
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        pacotes = PACOTES.get(categoria, {})
+        keyboard = []
+        for nome, p in pacotes.items():
+            preco_str = f"R${p['preco']:.2f}"
+            keyboard.append([InlineKeyboardButton(f"{nome} – {preco_str}", 
+                                                  callback_data=f"pacote:{categoria}:{nome}")])
+        keyboard.append([InlineKeyboardButton("⬅️ Voltar", callback_data="menu")])
         await query.edit_message_text(
-            f"📦 Pacotes disponíveis para *{categoria}*:",
-            reply_markup=reply_markup,
+            f"*{categoria}*\n\nEscolha um pacote:", 
+            reply_markup=InlineKeyboardMarkup(keyboard), 
             parse_mode="Markdown"
         )
 
     elif data.startswith("pacote:"):
+        # data = "pacote:categoria:nome"
         _, categoria, nome_pacote = data.split(":", 2)
         pacote = PACOTES.get(categoria, {}).get(nome_pacote)
-
         if not pacote:
-            await query.edit_message_text("🚫 Pacote não encontrado.")
+            await query.edit_message_text("❌ Pacote não encontrado.")
             return
-
+        # Armazena info no pending_orders para sabermos qual pacote o user escolheu
         pending_orders[chat_id] = {
             "categoria": categoria,
             "pacote": nome_pacote,
             "dados": pacote
         }
-
-        preco = pacote["preco"]
         await query.edit_message_text(
-            f"🗓️ Você escolheu o pacote *{nome_pacote}*\n"
-            f"💲 Valor: *R${preco:.2f}*\n"
-            "\nEnvie agora o link ou @usuario para continuar.",
+            f"Você escolheu o pacote *{nome_pacote}*\n\n"
+            "Agora, envie o link (http...) ou @usuario para continuarmos.",
             parse_mode="Markdown"
         )
 
+    elif data == "menu":
+        # Volta pro menu principal de escolha de categoria
+        await comprar(update, context)
+
 async def receber_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.message.chat_id
+    chat_id = update.message.chat.id
+    # Verifica se o user estava escolhendo algum pacote
     if chat_id not in pending_orders:
         return
 
     entrada = update.message.text.strip()
-    dados = pending_orders.pop(chat_id)
-    categoria = dados["categoria"]
-    pacote_nome = dados["pacote"]
-    pacote = dados["dados"]
-
-    if categoria.startswith("Seguidores"):
-        if not (entrada.startswith("@") or "instagram.com" in entrada):
-            await update.message.reply_text("⚠️ Isso não parece um @usuario ou um link válido.")
-            return
-    else:
-        if not entrada.startswith("http"):
-            await update.message.reply_text("⚠️ Link inválido. Comece com http.")
-            return
+    pedido = pending_orders.pop(chat_id)  # remove das pendências
+    categoria = pedido["categoria"]
+    pacote_nome = pedido["pacote"]
+    pacote = pedido["dados"]
 
     preco = pacote["preco"]
-    service_id = pacote["id"]
+    service_id = pacote["id"]  # definimos que tudo é "id" no dicionário
+    titulo = f"{pacote_nome}"  # ex: "100 Seguidores"
 
-    link_pagamento, mp_id = criar_pagamento(pacote_nome, preco)
-
-    if not link_pagamento:
-        await update.message.reply_text("❌ Erro ao gerar pagamento.")
+    if not (entrada.startswith("@") or entrada.startswith("http")):
+        await update.message.reply_text("⚠️ Por favor, envie um link ou @usuário válido.")
         return
 
-    salvar_pedido_completo(
-        usuario=chat_id,
-        servico=pacote_nome,
+    # Cria pagamento no Mercado Pago
+    link_pagamento, mp_id = criar_pagamento(titulo, preco)
+    if not link_pagamento:
+        await update.message.reply_text("❌ Erro ao gerar pagamento no Mercado Pago.")
+        return
+
+    # Salva no banco
+    salvar_pedido(
+        chat_id=chat_id,
+        servico=titulo,
         link=entrada,
         preco=preco,
-        status="aguardando",
         mp_id=mp_id,
-        fornecedor_id=None,
-        service_id=service_id,
-        chat_id=chat_id
+        status="aguardando",
+        service_id=service_id
     )
 
     await update.message.reply_text(
-        f"✅ Pedido criado!\n\n"
-        f"Produto: *{pacote_nome}*\n"
+        f"💸 *Pedido criado!* \n"
+        f"Pacote: *{titulo}*\n"
         f"Valor: R${preco:.2f}\n"
-        f"🔗 Link enviado: {entrada}\n\n"
-        f"💳 Clique aqui para pagar:\n{link_pagamento}",
+        f"🔗 Link de pagamento: {link_pagamento}\n\n"
+        "Após pagar, aguarde o status ser atualizado.",
         parse_mode="Markdown"
     )
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pedidos = listar_pedidos()
-    chat_id = update.message.chat_id
+    chat_id = update.message.chat.id
 
     resposta = "📊 *Seus últimos pedidos:*\n\n"
     encontrados = False
 
     for p in pedidos:
-        if p[9] == chat_id:
+        # p é uma tupla (id, chat_id, servico, link, preco, status, mp_id, service_id)
+        # Indices:         0        1         2     3     4      5      6       7
+        if p[1] == chat_id:
             encontrados = True
+            pedido_id = p[0]
+            servico = p[2]
+            link = p[3]
+            preco = p[4]
+            status_ = p[5]
+            mp_id = p[6]
             resposta += (
-                f"📦 *{p[2]}*\n"
-                f"💰 R${p[4]:.2f}\n"
-                f"🔗 [Link]({p[3]})\n"
-                f"📌 Status: `{p[5]}`\n\n"
+                f"**ID:** {pedido_id}\n"
+                f"**Pacote:** {servico}\n"
+                f"**Link/Usuário:** {link}\n"
+                f"**Preço:** R${preco:.2f}\n"
+                f"**Status:** `{status_}`\n"
+                f"**MP_ID:** {mp_id}\n"
+                "-------------------\n"
             )
 
     if not encontrados:
-        resposta = "❌ Nenhum pedido encontrado."
-
+        resposta = "Você ainda não tem pedidos registrados."
     await update.message.reply_text(resposta, parse_mode="Markdown")
 
 async def cancelar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("❌ Use assim: /cancelar <ID do pagamento>")
+        await update.message.reply_text("Use assim: /cancelar <mp_id>")
         return
-
     mp_id = context.args[0]
-    chat_id = update.message.chat_id
-    cancelar_pedido(mp_id, chat_id)
-
-    await update.message.reply_text("❌ Pedido cancelado com sucesso.")
+    cancelar_pedido(mp_id, update.message.chat.id)
+    await update.message.reply_text("✅ Pedido cancelado (ou já estava cancelado).")
 
 async def ajuda(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    texto = (
-        "📌 *Como usar o Stock Famous Bot:*\n\n"
-        "/start – Início\n"
-        "/comprar – Começar uma compra\n"
-        "/status – Ver seus pedidos\n"
-        "/cancelar <id> – Cancelar pedido\n"
-        "/ajuda – Ajuda\n"
-        "/contato – Suporte"
+    await update.message.reply_text(
+        "Comandos disponíveis:\n"
+        "/start - Iniciar\n"
+        "/comprar - Comprar pacotes\n"
+        "/status - Ver status dos pedidos\n"
+        "/cancelar <mp_id> - Cancelar pedido\n"
+        "/ajuda - Exibe este help\n"
+        "/contato - Falar com o suporte\n"
     )
-    await update.message.reply_text(texto, parse_mode="Markdown")
 
 async def contato(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "📞 Suporte: [@Bielzeramartins](https://t.me/Bielzeramartins)",
-        parse_mode="Markdown",
-        disable_web_page_preview=True
-    )
+    await update.message.reply_text("Suporte: @SeuUserSuporte", parse_mode="Markdown")
 
 def register_user_handlers(app):
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("comprar", comprar))
     app.add_handler(CommandHandler("status", status))
-    app.add_handler(CommandHandler("cancelar", cancelar))
     app.add_handler(CommandHandler("ajuda", ajuda))
+    app.add_handler(CommandHandler("cancelar", cancelar))
     app.add_handler(CommandHandler("contato", contato))
     app.add_handler(CallbackQueryHandler(clique_callback))
+    # Filtro para texto "qualquer" (desde que não seja comando)
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, receber_link))
