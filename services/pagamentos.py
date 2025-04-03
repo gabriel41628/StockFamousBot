@@ -14,7 +14,7 @@ def criar_pagamento(titulo, valor):
             "currency_id": "BRL",
             "unit_price": float(valor)
         }],
-        "notification_url": "https://SUASEGURL/webhook",  # coloque uma URL real se tiver
+        "notification_url": "https://fearless-rebirth-production.up.railway.app/webhook",  # coloque uma URL real se tiver
         "back_urls": {
             "success": "https://t.me/StockFamous_Bot",
             "failure": "https://t.me/StockFamous_Bot",
