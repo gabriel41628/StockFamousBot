@@ -1,47 +1,47 @@
 PACOTES = {
     "Seguidores Brasileiros": {
         "100 Seguidores 🇧🇷": {
-            "id_seguidores": 2556,
+            "id": 2556,
             "preco": 7.00,
             "descricao": "Seguidores Brasileiros"
         },
         "200 Seguidores 🇧🇷": {
-            "id_seguidores": 2556,
+            "id": 2556,
             "preco": 12.00,
             "descricao": "Seguidores Brasileiros"
         },
         "500 Seguidores 🇧🇷": {
-            "id_seguidores": 2556,
+            "id": 2556,
             "preco": 23.00,
             "descricao": "Seguidores Brasileiros"
         },
         "1.000 Seguidores + 300 Curtidas 🇧🇷": {
-            "id_seguidores": 2556,
+            "id": 2556,
             "id_curtidas": 2400,
             "preco": 37.00,
             "descricao": "Seguidores Brasileiros + Curtidas divididas nas últimas 3 publicações"
         },
         "2.000 Seguidores + 500 Curtidas 🇧🇷": {
-            "id_seguidores": 2556,
+            "id": 2556,
             "id_curtidas": 2400,
             "preco": 62.00,
             "descricao": "Seguidores Brasileiros + Curtidas divididas nas últimas 3 publicações"
         },
         "3.000 Seguidores + 700 Curtidas 🇧🇷": {
-            "id_seguidores": 2556,
-            "id_curtidas": 2400,
+            "id": 2556,
+            "id": 2400,
             "preco": 94.44,
             "descricao": "Seguidores Brasileiros + Curtidas divididas nas últimas 3 publicações"
         },
         "5.000 Seguidores + 1.000 Curtidas 🇧🇷": {
-            "id_seguidores": 2556,
-            "id_curtidas": 2400,
+            "id": 2556,
+            "id": 2400,
             "preco": 149.90,
             "descricao": "Seguidores Brasileiros + Curtidas divididas nas últimas 3 publicações"
         },
         "10.000 Seguidores + 3.000 Curtidas 🇧🇷": {
-            "id_seguidores": 2556,
-            "id_curtidas": 2400,
+            "id": 2556,
+            "id": 2400,
             "preco": 269.90,
             "descricao": "Seguidores Brasileiros + Curtidas divididas nas últimas 3 publicações"
         }
@@ -49,42 +49,42 @@ PACOTES = {
 
     "Seguidores Mundiais": {
         "200 Seguidores 🌍": {
-            "id_seguidores": 2571,
+            "id": 2571,
             "preco": 6.00,
             "descricao": "Seguidores Mundiais"
         },
         "500 Seguidores 🌍": {
-            "id_seguidores": 2571,
+            "id": 2571,
             "preco": 12.50,
             "descricao": "Seguidores Mundiais"
         },
         "1.000 Seguidores + 300 Curtidas 🌍": {
-            "id_seguidores": 2571,
-            "id_curtidas": 2298,
+            "id": 2571,
+            "id": 2298,
             "preco": 23.00,
             "descricao": "Seguidores + Curtidas divididas nas últimas 3 publicações"
         },
         "2.000 Seguidores + 500 Curtidas 🌍": {
-            "id_seguidores": 2571,
-            "id_curtidas": 2298,
+            "id": 2571,
+            "id": 2298,
             "preco": 37.00,
             "descricao": "Seguidores + Curtidas divididas nas últimas 3 publicações"
         },
         "3.000 Seguidores + 700 Curtidas 🌍": {
-            "id_seguidores": 2571,
-            "id_curtidas": 2298,
+            "id": 2571,
+            "id": 2298,
             "preco": 53.00,
             "descricao": "Seguidores + Curtidas divididas nas últimas 3 publicações"
         },
         "5.000 Seguidores + 1.000 Curtidas 🌍": {
-            "id_seguidores": 2571,
-            "id_curtidas": 2298,
+            "id": 2571,
+            "id": 2298,
             "preco": 84.50,
             "descricao": "Seguidores + Curtidas divididas nas últimas 3 publicações"
         },
         "10.000 Seguidores + 3.000 Curtidas 🌍": {
-            "id_seguidores": 2571,
-            "id_curtidas": 2298,
+            "id": 2571,
+            "id": 2298,
             "preco": 165.00,
             "descricao": "Seguidores + Curtidas divididas nas últimas 3 publicações"
         }

@@ -7,6 +7,7 @@ def criar_pagamento(titulo, valor):
         "Authorization": f"Bearer {MERCADO_PAGO_TOKEN}",
         "Content-Type": "application/json"
     }
+
     payload = {
         "items": [{
             "title": titulo,
@@ -14,7 +15,7 @@ def criar_pagamento(titulo, valor):
             "currency_id": "BRL",
             "unit_price": float(valor)
         }],
-        "notification_url": "https://fearless-rebirth-production.up.railway.app/webhook",  # troque por sua real webhook se quiser rastrear status
+        "notification_url": "https://fearless-rebirth-production.up.railway.app/webhook",  # Troque pelo seu real
         "auto_return": "approved",
         "back_urls": {
             "success": "https://t.me/StockFamous_Bot",
@@ -32,5 +33,5 @@ def criar_pagamento(titulo, valor):
             print("⚠️ Erro ao criar pagamento:", resposta.status_code, resposta.text)
             return None, None
     except Exception as e:
-        print("❌ Exceção ao criar pagamento:", str(e))
+        print("❌ Erro inesperado ao criar pagamento:", str(e))
         return None, None
